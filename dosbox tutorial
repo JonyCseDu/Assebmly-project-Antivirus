@@ -1,0 +1,8 @@
+1. compile using tasm- tasm hello.asm
+2. link all object file together tlink hello.obj
+3. run -> hello
+
+dosbox
+mount a drive: mount c c:\folder\
+cd
+

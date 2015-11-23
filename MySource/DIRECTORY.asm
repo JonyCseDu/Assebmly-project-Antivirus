@@ -1,0 +1,31 @@
+NAME "DIRECTORY"
+
+PROC DIRECTORY
+    ;SET DIRECTORY
+;    MOV AH, 0EH
+;    MOV DL, DIR
+;    SUB DL, 'a'
+;    INT 21H
+
+    ;SEEK FOR FIRST FILE
+
+    MOV AH, 4EH
+    MOV DX, OFFSET DIR
+    INT 21H
+    JC EXIT_D ; NO FILE
+
+    FIND_FILENAME:
+        CALL FILENAME
+        MOV AH, 4FH
+        ;MOV DX, OFFSET DIR
+        INT 21H
+        JC EXIT_D
+        JMP FIND_FILENAME
+
+    EXIT_D:
+        RET
+
+
+DIRECTORY ENDP
+
+INCLUDE "FILENAME.ASM"
