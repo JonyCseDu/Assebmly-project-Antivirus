@@ -1,0 +1,287 @@
+.MODEL SMALL
+.STACK 100H
+
+.DATA
+FLAG DB "OK", 10, 13, '$', 0
+
+MSG1 DB "FILES TRYING TO DELETE : $", 0
+MSG2 DB "SUCCESS : $", 0
+MSG3 DB "FAILED : $", 0 
+DTA DB 128 DUP(1)
+PRE DB 128 DUP(1)
+PRE_DIR DB 128 DUP(1)
+
+FOLDER DB "*.*", 0
+LNK DB "*.LNK", 0
+PAR DB "..", 0
+
+MAKE DB ".\..............................................................", 0
+FILE DB 128 DUP(1); "c:\jony.txt", 0
+COUNT DW 0
+FAIL DW 0 
+CHECK DW 10
+
+
+.CODE
+MAIN PROC
+    MOV AX, @DATA
+    MOV DS, AX
+    MOV ES, AX
+
+    ; SET DTA
+    MOV AH, 1AH
+    MOV DX, OFFSET DTA
+    INT 21H
+
+    ; SHOW MESSAGE
+    MOV AH, 9
+    MOV DX, OFFSET MSG1
+    INT 21H
+
+    ;PRINT NEW LINE
+    MOV AH, 2
+    MOV DL, 0DH
+    INT 21H
+    MOV DL, 0AH
+    INT 21H
+	
+    ; SEARCH CHECK TIME DIRECTORY AND DELETE FILE
+	
+	M1: 
+		CALL FIND_ALL_FILE
+		CALL FIND_ALL_FOLDER 
+		DEC CHECK
+		JNZ M1 
+	   
+	
+    ; PRINT SUCCESS 
+    MOV AH, 9
+    MOV DX, OFFSET MSG2
+    INT 21H
+    MOV AX, COUNT
+	CALL NUM
+
+    ;PRINT NEW LINE
+    MOV AH, 2
+    MOV DL, 0DH
+    INT 21H
+    MOV DL, 0AH
+    INT 21H
+
+	; PRINT FAILED 
+    MOV AH, 9
+    MOV DX, OFFSET MSG3
+    INT 21H
+    MOV AX, FAIL
+	MOV DX, 0 
+	MOV BX, 10D 
+	DIV BX 
+	CALL NUM
+
+    ;PRINT NEW LINE
+    MOV AH, 2
+    MOV DL, 0DH
+    INT 21H
+    MOV DL, 0AH
+    INT 21H
+
+    ;DOS EXIT
+    MOV AH, 4CH
+    INT 21H
+MAIN ENDP
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+NUM PROC ; PRINTS NUMBER -> FOR > 10 NUMBERS
+	XOR CX, CX 
+	MOV BX, 10D ; DIVIDE BY 10
+	
+	LOP1:
+		XOR DX, DX 
+		DIV BX  ; AX = QUOTIENT, DX = REMINDER 
+		PUSH DX  ; SAVE REMINDER
+		INC CX 
+	;UNTIL
+		OR AX, AX ; CHECK IF AX IS 0 
+		JNE LOP1
+	; ACTIVE PRINT MODE
+	MOV AH, 2 
+	PRINT_NUM:
+		POP DX
+		OR DL, 30H
+		INT 21H 
+		LOOP PRINT_NUM
+	RET 
+NUM ENDP
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+FIND_ALL_FILE PROC
+	PUSH AX
+    PUSH DX
+
+	;SEEK DTA FOR LNK FILE IN DRIVE
+		MOV AH, 4EH
+		MOV CX, 63
+		MOV DX, OFFSET LNK 
+		 ;NO DRIVE OR FILE
+
+		FIND_FILENAME:
+			INT 21H
+			JC F_EXIT ;NO MORE FILE 
+			CALL FILENAME ; OFFSET FILE = FILE NAME
+			MOV AH, 4FH ; FIND NEXT FILE MODE 
+			CALL DELETE ;-->
+			JMP FIND_FILENAME
+		F_EXIT: 	
+		POP DX
+		POP AX
+		RET
+FIND_ALL_FILE ENDP
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+FIND_ALL_FOLDER PROC 
+	PUSH AX
+	PUSH DX 
+	
+	;SEEK DTA FOR FOLDER 
+		MOV AH, 4EH
+		MOV CX, 63 ; ALL POSSIBLE ATTRIBUTE - COMBINED
+		MOV DX, OFFSET FOLDER 
+		FIND_FOLDER:
+			INT 21H
+			JC D_EXIT 
+			MOV AH, 4FH			
+			CALL FILENAME ; OFFSET FILE = FILE NAME
+			
+			; CHECK ITS A DIRECTORY ? -> 
+			MOV BL, BYTE PTR[DTA + 21]
+			MOV BH, 16 ; MASK WITH 16 -> FOLDER ATTRIBUTE OR 4TH BIT 
+			AND BL, BH 
+			JZ D_EXIT 
+			 
+			; CHECK ITS A SUBDIRECTORY ?
+			MOV DX, OFFSET FILE 
+			CMP FILE[0], '.'
+			JE FIND_FOLDER
+			
+			; CONFIRMED NOW CHANGE DIRECTORY
+			CALL CD
+			MOV AH, 4FH	
+			JMP FIND_FOLDER 
+	D_EXIT:
+		POP DX
+        POP AX
+        RET
+FIND_ALL_FOLDER ENDP
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+CD PROC
+	PUSH AX 
+	PUSH DX
+	PUSH CX 
+	
+	; MOVE : DTA -> PRE 
+	MOV CX, 2AH 
+	MOV SI, OFFSET DTA
+	MOV DI, OFFSET PRE 
+	REP MOVSB
+	
+	; CHANGE CURRENT DIRECTORY = SUBDIRECTORY
+	MOV DX, OFFSET FILE
+	MOV AH, 3BH
+	INT 21H
+			
+	; SEARCH CHECK TIME DIRECTORY AND DELETE FILE
+	;MOV CX, CHECK
+	;REP 
+	CALL FIND_ALL_FILE
+	CALL FIND_ALL_FOLDER
+			
+	; BACK TO PARENT
+	MOV DX, OFFSET PAR
+	MOV AH, 3BH
+	INT 21H
+	
+	; MOVE : PRE -> DTA  
+	MOV CX, 2AH 
+	MOV SI, OFFSET PRE 
+	MOV DI, OFFSET DTA  
+	REP MOVSB
+	
+	POP CX 
+	POP DX
+	POP AX
+	RET 
+
+CD ENDP 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+FILENAME PROC ; RETURN FILE NAME FROM DTA 
+;MOV AH, 9
+;MOV DX, OFFSET FLAG
+;INT 21H
+    PUSH AX
+    PUSH DX
+	PUSH CX 
+
+    MOV SI, OFFSET DTA
+    ADD SI, 30
+    MOV DI, OFFSET FILE
+	 
+    LOP:
+		MOV BL, [SI]
+        MOV [DI], BL
+		INC SI 
+		INC DI 
+		CMP BL, 0
+		JNE LOP 
+		
+    EXIT_FN:
+		DEC DI 
+		POP CX 
+        POP DX
+        POP AX
+        RET
+FILENAME ENDP
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+DELETE PROC
+	PUSH DX
+	PUSH AX
+	PUSH DI 
+	; PRINT WAHT WILL BE DELETED 
+    MOV [DI], 0DH
+    MOV [DI + 1], 0AH
+    MOV [DI + 2], '$'
+    MOV AH, 9
+    MOV DX, OFFSET FILE
+    INT 21H
+	
+    ; DELETE MAKE
+	MOV [DI], 0
+    MOV AH, 41H
+    MOV DX, OFFSET FILE 
+    INT 21H
+	JNC SUCCESS
+		INC FAIL
+		JMP FAILED 
+	
+	SUCCESS:
+		INC COUNT 
+	FAILED:
+	
+	POP DI
+	POP AX 
+	POP DX
+
+    RET
+
+DELETE ENDP
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+END MAIN
