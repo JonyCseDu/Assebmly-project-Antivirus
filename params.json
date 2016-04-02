@@ -1,6 +1,6 @@
 {
-  "name": "Assebmly-project-antivirus-",
+  "name": "Assebmly-project-antivirus",
   "tagline": "Shortcut virus resolver",
-  "body": "# Assebmly-project-Antivirus\r\nA Shortcut virus resolver that is written in Assembly Language for DOS operating system. It can recursively remove .lnk files and undo all the works that shortcut virus performs on file system.\r\n\r\nThe Execution steps are:\r\n![image1](https://github.com/JonyCseDu/Assebmly-project-Antivirus-/blob/master/1.jpg)\r\n![image2](https://github.com/JonyCseDu/Assebmly-project-Antivirus-/blob/master/2.jpg)\r\n![image3](https://github.com/JonyCseDu/Assebmly-project-Antivirus-/blob/master/3.jpg)\r\n![image4](https://github.com/JonyCseDu/Assebmly-project-Antivirus-/blob/master/4.jpg)\r\n\r\n",
+  "body": "# Assebmly-project-Antivirus\r\nA Shortcut virus resolver that is written in Assembly Language for DOS operating system. It can recursively remove .lnk files and undo all the works that shortcut virus performs on file system.\r\n\r\nThe Execution steps are:\r\n![image1](https://github.com/JonyCseDu/Assebmly-project-Antivirus-/blob/master/1.jpg?raw=true)\r\n![image2](https://github.com/JonyCseDu/Assebmly-project-Antivirus-/blob/master/2.jpg?raw=true)\r\n![image3](https://github.com/JonyCseDu/Assebmly-project-Antivirus-/blob/master/3.jpg?raw=true)\r\n![image4](https://github.com/JonyCseDu/Assebmly-project-Antivirus-/blob/master/4.jpg?raw=true)\r\n\r\n",
   "note": "Don't delete this file! It's used internally to help with page regeneration."
 }
